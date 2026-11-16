@@ -13,10 +13,26 @@ import shutil
 import sys
 from pathlib import Path
 
+MAX_BYTES = 1_048_576
+JPEG_MAGIC = b"\xff\xd8\xff"
+PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
+
+
+def check_image(path: Path) -> None:
+    """Fail loudly instead of writing an entry the gate would reject."""
+    data = path.read_bytes()
+    if len(data) > MAX_BYTES:
+        raise SystemExit(f"entry.png is {len(data)} bytes, over the 1 MiB limit")
+    if not (data.startswith(JPEG_MAGIC) or data.startswith(PNG_MAGIC)):
+        raise SystemExit("entry.png is neither a JPEG nor a PNG")
+    if len(data) == 0:
+        raise SystemExit("entry.png is empty")
+
 
 def main() -> int:
     here = Path(__file__).resolve().parent
     source = here / "entry.png"
+    check_image(source)
     out_dir = Path(os.environ.get("MAKEFUN_OUTPUT_DIR", "/output"))
     out_dir.mkdir(parents=True, exist_ok=True)
     target = out_dir / "entry.png"
